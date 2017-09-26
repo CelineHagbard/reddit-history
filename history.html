@@ -1,0 +1,256 @@
+<html>
+
+<head>
+    <script
+      src="https://code.jquery.com/jquery-3.2.1.min.js"
+      integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+      crossorigin="anonymous"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.css">
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/snuownd@1.1.0/snuownd.js"></script>
+    
+</head>
+
+<body>
+
+<div>
+    <form id="queryForm" action="#">
+        <table>
+            <tr>
+                <td>
+                    <input type="submit" name="submit" id="submit" value="Fetch Items">
+                </td>
+                <td>
+                    <input type="radio" name="itemType" value="comment" checked> Comments<br>
+                    <input type="radio" name="itemType" value="submission"> Posts
+                </td>
+                <td>
+                    Author: <input type="text" name="author" id="author">
+                </td>
+                <td>
+                    Limit: <input type="number" name="limit" id="limit">
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="commentDiv">
+    <table id="commentTable" class="display">
+        <thead>
+            <th>Subreddit</th>
+            <th>Date</th>
+            <th>Links</th>
+            <th>Score</th>
+            <th>Body</th>
+        </thead>
+    </table>
+</div>
+<div id="submissionDiv">
+    <table id="submissionTable" class="display">
+        <thead>
+            <th>Subreddit</th>
+            <th>Date</th>
+            <th>Links</th>
+            <th>Score</th>
+            <th>Title</th>
+            <th>self.text</th>
+        </thead>
+    </table>
+</div>
+
+<script type="text/javascript">
+        
+
+    String.prototype.formatUnicorn = String.prototype.formatUnicorn ||
+    function () {
+        "use strict";
+        var str = this.toString();
+        if (arguments.length) {
+            var t = typeof arguments[0];
+            var key;
+            var args = ("string" === t || "number" === t) ?
+                Array.prototype.slice.call(arguments)
+                : arguments[0];
+
+            for (key in args) {
+                str = str.replace(new RegExp("\\{" + key + "\\}", "gi"), args[key]);
+            }
+        }
+
+        return str;
+    };
+
+    function formatDate(d, includeTime) {
+        var monthNames = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        ];
+
+        var day = d.getDate();
+        var monthIndex = d.getMonth();
+        var year = d.getFullYear();
+        var datetime = monthNames[monthIndex] +' '+ day +' '+ year;
+
+        if (includeTime){
+            var mins = ('0'+d.getMinutes()).slice(-2);
+            var secs = ('0'+d.getMinutes()).slice(-2);
+            datetime += ' ' + d.getHours() +':'+ mins +":"+ secs;
+        }
+
+        return datetime;
+    }
+
+    var subredditString = "<a href='https://www.reddit.com/r/{0}'>{0}</a>";
+    var postString = "<a href='https://www.reddit.com/r/{0}/comments/{1}'>Comments</a>";
+    var contextString = "<a href='https://www.reddit.com/r/{0}/comments/{1}/-/{2}/?context=100'>Context</a>";
+    var linkString = "<a href='{0}'>Link</a>";
+
+    function getData(type, author, limit){
+        var data = [];
+        var url = 'https://api.pushshift.io/reddit/{0}/search/'
+                    .formatUnicorn(type, author, limit);
+        var before = Math.floor(Date.now() / 1000);
+
+        makeRequest(data, url, type, author, limit, before);
+    }
+
+    function makeRequest(data, url, type, author, limit, before){
+     
+        $.get(
+            url,
+            { author: author, limit: limit, before: before}, 
+            function(response){
+                data.push.apply(data, response.data);
+                console.log("Retrieved " + data.length + "total results so far.");
+                if ( response.metadata.results_returned < 500 ) {
+                    if (type == "comment"){
+                        buildCommentTable(data);
+                    } else {
+                        buildSubmissionTable(data);
+                    }
+                }
+                else {
+                    before = data.slice(-1)[0].created_utc;
+                    limit -= 500;
+                    setTimeout( makeRequest(data, url, type, author, limit, before), 1000 );
+                }
+                
+            }
+        );
+    }
+    
+
+    function buildCommentTable(data){
+        $('#submissionDiv').hide();
+        $('#commentDiv').show();
+        $('#commentTable').DataTable({
+            paging: true,
+            destroy: true,
+            data: data,
+            columns: [
+                {   data: 'subreddit', 
+                    render: function ( data, type, row){
+                        if ( type === 'display' || type === 'filter' ) {
+                            return subredditString.formatUnicorn(data);
+                        }
+                        return data;
+                    }},     
+                {   data: 'created_utc', 
+                    render: function ( data, type, row){
+                        if ( type === 'display' || type === 'filter' ) {
+                            var d = new Date( data * 1000 );
+                            return formatDate(d, true);
+                        }
+                        return data;
+                    }}, 
+                {   data: 'link_id', 
+                    render: function ( data, type, row){
+                        if ( type === 'display' || type === 'filter' ) {
+                            var post = postString.formatUnicorn(row.subreddit, data.slice(3));
+                            var context = contextString.formatUnicorn( row.subreddit, 
+                                                                row.link_id.slice(3), 
+                                                                row.id);
+                            return post +"<br/>"+ context;
+                        }
+                        return data;
+                    }}, 
+                {   data: 'score' },
+                {   data: 'body',
+                    render: function( data, type, row ){
+                        if ( type === 'display' || type === 'filter' ) {
+                            return SnuOwnd.getParser().render(data);
+                        }
+                        return data;
+                    }}
+            ]
+        });
+        
+    }
+
+    function buildSubmissionTable(data){
+        $('#commentDiv').hide();
+        $("#submissionDiv").show();
+        $('#submissionTable').DataTable({
+            paging: true,
+            destroy: true,
+            data: data,
+            columns: [
+                {   data: 'subreddit', 
+                    render: function ( data, type, row){
+                        if ( type === 'display' || type === 'filter' ) {
+                            return subredditString.formatUnicorn(data);
+                        }
+                        return data;
+                    }},     
+                {   data: 'created_utc', 
+                    render: function ( data, type, row){
+                        if ( type === 'display' || type === 'filter' ) {
+                            var d = new Date( data * 1000 );
+                            return formatDate(d, true);
+                        }
+                        return data;
+                    }}, 
+                {   data: 'id', 
+                    render: function ( data, type, row){
+                        if ( type === 'display' || type === 'filter' ) {
+                            var post = postString.formatUnicorn(row.subreddit, data);
+                            var link = linkString.formatUnicorn( row.url );
+                            return post +"<br/>"+ link;
+                        }
+                        return data;
+                    }}, 
+                {   data: 'score' },
+                {   data: 'title' },
+                {   data: 'selftext',
+                    render: function( data, type, row ){
+                        if (typeof data == 'undefined') return "<i>N/A</i>";
+                        if (type === 'display' || type === 'filter' ) {
+                            return SnuOwnd.getParser().render(data);
+                        }
+                        return data;
+                    }}
+            ]
+        });
+        
+    }
+
+
+    $(function(){
+        $('#commentDiv').hide();
+        $('#submissionDiv').hide();
+
+        $("#queryForm").submit(function(e){
+            e.preventDefault();
+
+            var author = $("#author").val();
+            var limit = $("#limit").val();
+            var itemType = $("input[name='itemType']:checked").val();
+            getData(itemType, author, limit);
+        });
+    });
+
+</script>
+
+</body>
+
+
+</html>
