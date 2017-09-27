@@ -12,10 +12,41 @@
     <style type="text/css">
         body{
             font-family: verdana, helvetica, arial;
+            font-size:  small;
+        }
+        table {
+            
         }
         table.dataTable{
             font-size: small;
+            width: 95%;
+            margin-bottom: 50px;
         }
+        table.dataTable .textColumn {
+            word-break: break-word;
+            vertical-align: top;
+        }       
+        table.dataTable th{
+            text-align: left;
+        }
+        table.dataTable tfoot{
+            display: table-header-group;
+        }
+        div.tableDiv {
+            width: 100%;
+        }
+        .dataTables_paginate{
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            background:white;
+        }
+        .dataTables_info{
+            position: fixed;
+            bottom: 0;
+            background:white;
+        }
+
 
     </style>
 
@@ -27,9 +58,7 @@
     <form id="queryForm" action="#">
         <table>
             <tr>
-                <td>
-                    <input type="submit" name="submit" id="submit" value="Fetch Items">
-                </td>
+                
                 <td>
                     <input type="radio" name="itemType" value="comment" checked> Comments<br>
                     <input type="radio" name="itemType" value="submission"> Posts
@@ -38,33 +67,54 @@
                     Author: <input type="text" name="author" id="author">
                 </td>
                 <td>
-                    Limit: <input type="number" name="limit" id="limit">
+                    Limit: <input type="number" name="limit" id="limit" value="500">
+                </td>
+                <td>
+                    <input type="submit" name="submit" id="submit" value="Fetch Items">
+                </td>
+                <td>
+                    <input type="text" id="statusText" size="40">
                 </td>
             </tr>
         </table>
     </form>
 </div>
-<div id="commentDiv">
-    <table id="commentTable" class="display">
+<div id="commentDiv" class="tableDiv" >
+    <table id="commentTable" class="display dataTable" width="100%">
         <thead>
-            <th>Subreddit</th>
-            <th>Date</th>
-            <th>Links</th>
-            <th>Score</th>
-            <th>Body</th>
+            <th class="subredditHead">Subreddit</th>
+            <th class="dateHead">Date</th>
+            <th class="linksHead">Links</th>
+            <th class="scoreHead">Score</th>
+            <th class="bodyHead">Body</th>
         </thead>
+        <tfoot>
+            <th class="subredditHead">Subreddit</th>
+            <th class="dateHead">Date</th>
+            <th class="linksHead">Links</th>
+            <th class="scoreHead">Score</th>
+            <th class="bodyHead">Body</th>
+        </tfoot>
     </table>
 </div>
-<div id="submissionDiv">
-    <table id="submissionTable" class="display">
+<div id="submissionDiv" class="tableDiv">
+    <table id="submissionTable" class="display dataTable">
         <thead>
-            <th>Subreddit</th>
-            <th>Date</th>
-            <th>Links</th>
-            <th>Score</th>
-            <th>Title</th>
-            <th>self.text</th>
+            <th class="subredditHead">Subreddit</th>
+            <th class="dateHead">Date</th>
+            <th class="linksHead">Links</th>
+            <th class="scoreHead">Score</th>
+            <th class="titleHead">Title</th>
+            <th class="selftextHead">self.text</th>
         </thead>
+        <tfoot>
+            <th class="subredditHead">Subreddit</th>
+            <th class="dateHead">Date</th>
+            <th class="linksHead">Links</th>
+            <th class="scoreHead">Score</th>
+            <th class="titleHead">Title</th>
+            <th class="selftextHead">self.text</th>
+        </tfoot>
     </table>
 </div>
 
@@ -130,8 +180,9 @@
             { author: author, limit: limit, before: before}, 
             function(response){
                 data.push.apply(data, response.data);
-                console.log("Retrieved " + data.length + "total results so far.");
+                $("#statusText").val("Retrieved " + data.length + " total results so far.");
                 if ( response.metadata.results_returned < 500 ) {
+                    $("#statusText").val("Completed. Fetched " + data.length + " total results.");
                     if (type == "comment"){
                         buildCommentTable(data);
                     } else {
@@ -152,14 +203,15 @@
     function buildCommentTable(data){
         $('#submissionDiv').hide();
         $('#commentDiv').show();
-        $('#commentTable').DataTable({
-            paging: true,
+        var table = $('#commentTable').DataTable({
             destroy: true,
+            lengthMenu: [ [10, 50, 100, -1], [10, 50, 100, "All (Slow)"] ],
+            pageLength: 100,
             data: data,
             columns: [
                 {   data: 'subreddit', 
                     render: function ( data, type, row){
-                        if ( type === 'display' || type === 'filter' ) {
+                        if ( type === 'display') {
                             return subredditString.formatUnicorn(data);
                         }
                         return data;
@@ -190,23 +242,29 @@
                             return SnuOwnd.getParser().render(data);
                         }
                         return data;
-                    }}
+                    },
+                    className: "textColumn",
+                },
+                    
             ]
         });
+
+        addFilters(table);
         
     }
 
     function buildSubmissionTable(data){
         $('#commentDiv').hide();
         $("#submissionDiv").show();
-        $('#submissionTable').DataTable({
-            paging: true,
+        var table = $('#submissionTable').DataTable({
             destroy: true,
+            lengthMenu: [ [10, 50, 100, -1], [10, 50, 100, "All (Slow)"] ],
+            pageLength: 100,
             data: data,
             columns: [
                 {   data: 'subreddit', 
                     render: function ( data, type, row){
-                        if ( type === 'display' || type === 'filter' ) {
+                        if ( type === 'display' ) {
                             return subredditString.formatUnicorn(data);
                         }
                         return data;
@@ -229,7 +287,9 @@
                         return data;
                     }}, 
                 {   data: 'score' },
-                {   data: 'title' },
+                {   data: 'title',
+                    className: "textColumn",
+                },
                 {   data: 'selftext',
                     render: function( data, type, row ){
                         if (typeof data == 'undefined') return "<i>N/A</i>";
@@ -237,16 +297,47 @@
                             return SnuOwnd.getParser().render(data);
                         }
                         return data;
-                    }}
+                    },
+                    className: "textColumn",
+                },
             ]
         });
         
+        addFilters(table);
     }
 
+    function addFilters(table){
+        table.columns().every( function () {
+            var that = this;
+     
+            $( 'input', this.footer() ).on( 'keyup change', function () {
+                if ( that.search() !== this.value ) {
+                    that
+                        .search( this.value )
+                        .draw();
+                }
+            } );
+        } );
+
+    }
 
     $(function(){
         $('#commentDiv').hide();
         $('#submissionDiv').hide();
+
+        // Add search filter inputs to each column
+        $('.dataTable tfoot th').each( function () {
+            var title = $(this).text();
+            if (title == "Score" || title == "Links"){
+                $(this).html("");
+            } else { 
+                $(this).html( '<input type="text" placeholder="filter" />' );
+            }
+        } );
+
+        // move filters to table head
+
+
 
         $("#queryForm").submit(function(e){
             e.preventDefault();
