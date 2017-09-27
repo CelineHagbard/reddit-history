@@ -1,12 +1,17 @@
 <html>
 
 <head>
+    <title>User History Tool</title>
     <script
       src="https://code.jquery.com/jquery-3.2.1.min.js"
       integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
       crossorigin="anonymous"></script>
+      <script src="https://bartaz.github.io/sandbox.js/jquery.highlight.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/plug-ins/1.10.16/features/searchHighlight/dataTables.searchHighlight.css">
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/plug-ins/1.10.16/features/searchHighlight/dataTables.searchHighlight.min.js"></script>
+
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/snuownd@1.1.0/snuownd.js"></script>
     
     <style type="text/css">
@@ -26,6 +31,7 @@
             word-break: break-word;
             vertical-align: top;
         }       
+
         table.dataTable th{
             text-align: left;
         }
@@ -39,12 +45,13 @@
             position: fixed;
             bottom: 0;
             right: 0;
-            background:white;
+            background:#bbffff;
         }
         .dataTables_info{
             position: fixed;
             bottom: 0;
-            background:white;
+            background:#bbffff;
+            padding: 5px;
         }
 
 
@@ -204,9 +211,6 @@
         $('#submissionDiv').hide();
         $('#commentDiv').show();
         var table = $('#commentTable').DataTable({
-            destroy: true,
-            lengthMenu: [ [10, 50, 100, -1], [10, 50, 100, "All (Slow)"] ],
-            pageLength: 100,
             data: data,
             columns: [
                 {   data: 'subreddit', 
@@ -257,9 +261,6 @@
         $('#commentDiv').hide();
         $("#submissionDiv").show();
         var table = $('#submissionTable').DataTable({
-            destroy: true,
-            lengthMenu: [ [10, 50, 100, -1], [10, 50, 100, "All (Slow)"] ],
-            pageLength: 100,
             data: data,
             columns: [
                 {   data: 'subreddit', 
@@ -319,7 +320,18 @@
             } );
         } );
 
+        $(".dateHead input").attr("size", 10);
+        $(".subredditHead input").attr("size", 12);
+
     }
+
+    // Default options for all tables
+    $.extend( true, $.fn.dataTable.defaults, {
+        destroy: true,
+        lengthMenu: [ [10, 50, 100, -1], [10, 50, 100, "All (Slow)"] ],
+        pageLength: 100,
+        searchHighlight: true,
+    } );
 
     $(function(){
         $('#commentDiv').hide();
