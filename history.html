@@ -188,7 +188,7 @@
             function(response){
                 data.push.apply(data, response.data);
                 $("#statusText").val("Retrieved " + data.length + " total results so far.");
-                if ( response.metadata.results_returned < 500 ) {
+                if ( response.data.length < 500 ) {
                     $("#statusText").val("Completed. Fetched " + data.length + " total results.");
                     if (type == "comment"){
                         buildCommentTable(data);
