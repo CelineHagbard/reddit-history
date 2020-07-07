@@ -170,6 +170,7 @@
     var postString = "<a href='https://www.reddit.com/r/{0}/comments/{1}'>Comments</a>";
     var contextString = "<a href='https://www.reddit.com/r/{0}/comments/{1}/-/{2}/?context=100'>Context</a>";
     var linkString = "<a href='{0}'>Link</a>";
+    var PER_REQUEST = 100
 
     function getData(type, author, limit){
         var data = [];
@@ -188,7 +189,7 @@
             function(response){
                 data.push.apply(data, response.data);
                 $("#statusText").val("Retrieved " + data.length + " total results so far.");
-                if ( response.data.length < 500 ) {
+                if ( response.data.length < PER_REQUEST ) {
                     $("#statusText").val("Completed. Fetched " + data.length + " total results.");
                     if (type == "comment"){
                         buildCommentTable(data);
@@ -198,7 +199,7 @@
                 }
                 else {
                     before = data.slice(-1)[0].created_utc;
-                    limit -= 500;
+                    limit -= PER_REQUEST;
                     setTimeout( makeRequest(data, url, type, author, limit, before), 1000 );
                 }
                 
