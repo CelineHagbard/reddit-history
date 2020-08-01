@@ -200,7 +200,9 @@
                 else {
                     before = data.slice(-1)[0].created_utc;
                     limit -= PER_REQUEST;
-                    setTimeout( makeRequest(data, url, type, author, limit, before), 1000 );
+                    setTimeout(function(){ 
+                        makeRequest(data, url, type, author, limit, before)
+                    }, 1500 );
                 }
                 
             }
